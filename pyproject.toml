@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Fail-closed database de-identification for Django: every model must declare a policy, or the run refuses."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [{ name = "Joel Ryan" }]
 dependencies = [
     "django>=4.2",
@@ -29,7 +29,7 @@ DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py310"
 line-length = 88
 extend-exclude = ["**/migrations/*"]
 
