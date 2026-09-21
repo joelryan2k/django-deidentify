@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.5/.schema/devbox.schema.json",
+  "packages": [
+    "python@3.14",
+    "uv@0.12.5"
+  ],
+  "env": {
+    "UV_PYTHON_PREFERENCE": "only-system"
+  },
+  "shell": {
+    "init_hook": [
+      "uv sync --extra test",
+      "source .venv/bin/activate"
+    ],
+    "scripts": {
+      "test": ["pytest"]
+    }
+  }
+}
