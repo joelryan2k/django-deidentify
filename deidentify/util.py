@@ -22,6 +22,19 @@ def enumerate_database_cache_tables():
             yield config["LOCATION"]
 
 
+def enumerate_unmanaged_tables(model):
+    """Tables Django creates for a model but gives no model class of its own.
+
+    Auto-created M2M through tables (auth_user_groups and friends) hold only
+    foreign keys, so there is nothing to deidentify and no policy to write.
+    """
+    for field in model._meta.many_to_many:
+        through = field.remote_field.through
+
+        if through._meta.auto_created:
+            yield through._meta.db_table
+
+
 def enumerate_tables():
     with connection.cursor() as cursor:
         cursor.execute(

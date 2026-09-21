@@ -12,6 +12,7 @@ from deidentify.util import (
     enumerate_database_cache_tables,
     enumerate_models,
     enumerate_tables,
+    enumerate_unmanaged_tables,
     truncate_table,
 )
 
@@ -89,8 +90,9 @@ def anonymize():
     all_tables = list(enumerate_tables())
 
     for app, model in enumerate_models():
-        if model._meta.db_table in all_tables:
-            all_tables.remove(model._meta.db_table)
+        for table in [model._meta.db_table, *enumerate_unmanaged_tables(model)]:
+            if table in all_tables:
+                all_tables.remove(table)
 
         model_policy = policy.model_policies.get((app.name, model))
 
@@ -120,6 +122,10 @@ def anonymize():
             all_tables.remove(table)
         logger.info("Truncating cache table %s", table)
         truncate_table(table)
+
+    # Django owns its migration ledger; it holds no user data.
+    if "django_migrations" in all_tables:
+        all_tables.remove("django_migrations")
 
     if len(all_tables):
         logger.warning("Unhandled tables: %s", all_tables)

@@ -1,6 +1,10 @@
 from django.test import TestCase, override_settings
 
-from deidentify.util import create_incrementing_faker, enumerate_database_cache_tables
+from deidentify.util import (
+    create_incrementing_faker,
+    enumerate_database_cache_tables,
+    enumerate_unmanaged_tables,
+)
 
 
 class IncrementingFakerTests(TestCase):
@@ -35,3 +39,13 @@ class EnumerateDatabaseCacheTablesTests(TestCase):
     )
     def test_yields_nothing_without_a_database_cache(self):
         self.assertEqual(list(enumerate_database_cache_tables()), [])
+
+
+class EnumerateUnmanagedTablesTests(TestCase):
+    def test_yields_auto_created_through_tables(self):
+        from django.contrib.auth.models import User
+
+        self.assertEqual(
+            set(enumerate_unmanaged_tables(User)),
+            {"auth_user_groups", "auth_user_user_permissions"},
+        )
