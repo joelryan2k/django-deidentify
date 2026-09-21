@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-deidentify"
+version = "0.1.0"
+description = "Fail-closed database de-identification for Django: every model must declare a policy, or the run refuses."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Joel Ryan" }]
+dependencies = [
+    "django>=4.2",
+    "faker",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-django"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["deidentify"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
