@@ -18,9 +18,34 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest", "pytest-django"]
 
+[dependency-groups]
+dev = ["ruff>=0.16.6"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["deidentify"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "DJ",  # flake8-django
+]
+ignore = [
+    "E501",  # line length is enforced by `ruff format`
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*.py" = ["E", "F401"]
+"**/__init__.py" = ["F401"]

@@ -15,18 +15,19 @@ Every model picks exactly one mixin from `deidentify.mixins`:
 ```python
 from deidentify.mixins import ConfidentialFields, ConfidentialTable, NotConfidential
 
-class Order(NotConfidential, models.Model):
-    ...  # no PII, left untouched
 
-class Session(ConfidentialTable, models.Model):
-    ...  # table is emptied entirely
+class Order(NotConfidential, models.Model): ...  # no PII, left untouched
+
+
+class Session(ConfidentialTable, models.Model): ...  # table is emptied entirely
+
 
 class Customer(ConfidentialFields, models.Model):
     email = models.EmailField()
     account_number = models.CharField(max_length=20, unique=True)
 
     _anonymizer_field_map = {
-        "email": lambda f: f.email,                                   # 1-arg: fn(fake)()
+        "email": lambda f: f.email,  # 1-arg: fn(fake)()
         "account_number": create_incrementing_faker(20000, "A{:05d}"),  # unique columns
     }
 ```

@@ -55,7 +55,9 @@ class DispatchAndFieldMappingTests(TestCase):
         self.assertEqual(row.account_number, "A20000")  # create_incrementing_faker
 
     def test_inherited_field_map_merges_with_subclass_map(self):
-        row = ChildWithOwnSecret.objects.create(name="Jane Q Client", note="secret note")
+        row = ChildWithOwnSecret.objects.create(
+            name="Jane Q Client", note="secret note"
+        )
 
         policy = build_policy()
         mapping = policy.model_policies[("tests.testapp", ChildWithOwnSecret)].field_map
@@ -67,7 +69,9 @@ class DispatchAndFieldMappingTests(TestCase):
 
 
 @postgres_only
-@override_settings(DEBUG=True, DEIDENTIFY_POLICY_HOOK="tests.hooks.default_remaining_to_no_action")
+@override_settings(
+    DEBUG=True, DEIDENTIFY_POLICY_HOOK="tests.hooks.default_remaining_to_no_action"
+)
 class AnonymizeEndToEndTests(TestCase):
     """The full anonymize() pipeline, including the Postgres-only
     unhandled-tables warning — needs a real Postgres database.

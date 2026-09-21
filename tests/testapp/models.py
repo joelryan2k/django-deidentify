@@ -18,7 +18,7 @@ class MappedRow(ConfidentialFields, models.Model):
 
     _anonymizer_field_map = {
         "faked": lambda f: f.first_name,  # 1-arg callable
-        "code": lambda f, previous: (lambda: f"anon-{previous}"),  # 2-arg callable
+        "code": lambda f, previous: lambda: f"anon-{previous}",  # 2-arg callable
         "country": "REDACTED",  # plain string literal
         "account_number": create_incrementing_faker(20000, "A{:05d}"),
     }

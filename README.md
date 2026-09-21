@@ -33,11 +33,12 @@ Every model picks exactly one mixin:
 ```python
 from deidentify.mixins import ConfidentialFields, ConfidentialTable, NotConfidential
 
-class Order(NotConfidential, models.Model):
-    ...  # no PII, left untouched
 
-class Session(ConfidentialTable, models.Model):
-    ...  # table is emptied entirely
+class Order(NotConfidential, models.Model): ...  # no PII, left untouched
+
+
+class Session(ConfidentialTable, models.Model): ...  # table is emptied entirely
+
 
 class Customer(ConfidentialFields, models.Model):
     first_name = models.CharField(max_length=100)
@@ -45,8 +46,8 @@ class Customer(ConfidentialFields, models.Model):
     account_number = models.CharField(max_length=20, unique=True)
 
     _anonymizer_field_map = {
-        "first_name": lambda f: f.first_name,          # faker method, 1-arg form
-        "email": lambda f, previous: (lambda: f"user+{hash(previous)}@example.com"),
+        "first_name": lambda f: f.first_name,  # faker method, 1-arg form
+        "email": lambda f, previous: lambda: f"user+{hash(previous)}@example.com",
         "account_number": create_incrementing_faker(20000, "A{:05d}"),  # unique columns
     }
 ```
@@ -87,10 +88,12 @@ DEIDENTIFY_POLICY_HOOK = "myproject.deidentify_hooks.add_policies"
 import django.contrib.auth.models
 from deidentify.model_actions import NoAction, ObscureFields, TruncateTable
 
+
 def reset_user_passwords():
     for user in django.contrib.auth.models.User.objects.all():
         user.set_password("admin")
         user.save()
+
 
 def add_policies(policy):
     policy.model_policies[("django.contrib.auth", django.contrib.auth.models.User)] = (
