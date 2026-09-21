@@ -8,7 +8,12 @@ from django.conf import settings
 from deidentify.mixins import FIELD_MAPPING, FIELD_MAPPING_VALUE
 from deidentify.model_actions import NoAction, ObscureFields, TruncateTable
 from deidentify.policy import build_policy
-from deidentify.util import enumerate_models, enumerate_tables
+from deidentify.util import (
+    enumerate_database_cache_tables,
+    enumerate_models,
+    enumerate_tables,
+    truncate_table,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +114,12 @@ def anonymize():
                 model_policy.post_action()
 
             continue
+
+    for table in enumerate_database_cache_tables():
+        if table in all_tables:
+            all_tables.remove(table)
+        logger.info("Truncating cache table %s", table)
+        truncate_table(table)
 
     if len(all_tables):
         logger.warning("Unhandled tables: %s", all_tables)

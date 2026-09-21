@@ -1,11 +1,25 @@
 from django.apps import apps
+from django.conf import settings
 from django.db import connection
+
+DATABASE_CACHE_BACKEND = "django.core.cache.backends.db.DatabaseCache"
 
 
 def enumerate_models():
     for app in apps.get_app_configs():
         for model in app.get_models():
             yield app, model
+
+
+def enumerate_database_cache_tables():
+    """Table names of every settings.CACHES entry backed by the DB cache.
+
+    Those tables hold cached data, not model rows, so enumerate_models() never
+    sees them and anonymize() would otherwise flag them as unhandled.
+    """
+    for config in settings.CACHES.values():
+        if config.get("BACKEND") == DATABASE_CACHE_BACKEND:
+            yield config["LOCATION"]
 
 
 def enumerate_tables():
