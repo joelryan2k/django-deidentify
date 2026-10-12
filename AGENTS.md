@@ -54,7 +54,7 @@ Five modules, each with one job, called in this order by `deidentify management 
   secondary signal for policy drift, not currently fail-closed itself.
 - **`sql.py`** — expression helpers for field maps (`seq_text`, `seq_email`, `seq_digits`, and
   the PostgreSQL-only `fake_choice` and `jsonb_set_keys`). `ensure_functions()` creates the
-  session-scoped `pg_temp.try_jsonb()` that `jsonb_set_keys` relies on.
+  session-scoped `pg_temp.try_jsonb_object()` that `jsonb_set_keys` relies on.
 - **`util.py`** — `enumerate_models`/`enumerate_tables` (DB introspection),
   `create_incrementing_faker(start, format_str)` for unique-constrained columns where a random
   fake risks a collision.

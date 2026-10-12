@@ -10,7 +10,8 @@ while the version is 0.x, breaking changes bump the minor version.
 - Field-map values can be Django expressions (`F`, `Value`, `Concat`, `Func`, …). Expressions and
   literals run inside the database as one `UPDATE` per table, so no rows are loaded into Python.
 - `deidentify.sql` helpers: `seq_text`, `seq_email`, `seq_digits`, and the PostgreSQL-only
-  `fake_choice` (with `n`, `seed` and `locales`) and `jsonb_set_keys`.
+  `fake_choice` (with `n`, `seed` and `locales`) and `jsonb_set_keys` (anything that isn't a
+  JSON object, including invalid JSON, arrays and scalars, becomes `{}`).
 - Settings `DEIDENTIFY_CHUNK_SIZE` (default 2000) and `DEIDENTIFY_UPDATE_BATCH_SIZE` (default
   `None`).
 
@@ -24,7 +25,7 @@ while the version is 0.x, breaking changes bump the minor version.
   (e.g. soft-deleted or inactive rows) no longer stops those rows from being scrubbed.
 - **Default chunk size dropped from 20,000 to 2,000** on the Python (callable) path, to limit
   memory use. Set `DEIDENTIFY_CHUNK_SIZE` to change it.
-- **On PostgreSQL, the run now creates a temporary function** (`pg_temp.try_jsonb`) on its
+- **On PostgreSQL, the run now creates a temporary function** (`pg_temp.try_jsonb_object`) on its
   connection. The database user needs the `TEMP` privilege, which PostgreSQL grants by default.
 
 ## Upgrading from 0.1.x

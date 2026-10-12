@@ -10,8 +10,13 @@ from django.db.models.functions import Cast, Concat, LPad
 MAX_CONSECUTIVE_MISSES = 1000
 
 TRY_JSONB_SQL ="""
-CREATE OR REPLACE FUNCTION pg_temp.try_jsonb(t text) RETURNS jsonb AS $$
-BEGIN RETURN t::jsonb; EXCEPTION WHEN others THEN RETURN NULL; END $$ LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION pg_temp.try_jsonb_object(t text) RETURNS jsonb AS $$
+DECLARE v jsonb;
+BEGIN
+  v := t::jsonb;
+  RETURN CASE WHEN jsonb_typeof(v) = 'object' THEN v END;
+EXCEPTION WHEN others THEN RETURN NULL;
+END $$ LANGUAGE plpgsql
 """
 
 
@@ -102,7 +107,7 @@ class JsonbSetKeys(Func):
         (column, *pairs), params = _compile_all(compiler, self.get_source_expressions())
         pairs_sql = ", ".join(f"({sql})::text" for sql in pairs)
         return (
-            f"COALESCE((pg_temp.try_jsonb({column}) || jsonb_build_object({pairs_sql}))::text, '{{}}')",
+            f"COALESCE((pg_temp.try_jsonb_object({column}) || jsonb_build_object({pairs_sql}))::text, '{{}}')",
             params,
         )
 

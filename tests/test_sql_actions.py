@@ -138,3 +138,15 @@ class FakeChoicePoolTests(unittest.TestCase):
         us = fake_choice(lambda f: f.last_name).pool
         many = fake_choice(lambda f: f.last_name, locales=["en_US", "en_GB", "en_AU"]).pool
         self.assertGreater(len(many), len(us))
+
+
+@postgres_only
+@override_settings(DEBUG=True)
+class JsonbNonObjectTests(TestCase):
+    def test_non_objects_are_replaced(self):
+        for raw in ['[{"first_name": "Jane"}]', '"Jane"', "42", "null"]:
+            with self.subTest(raw=raw):
+                row = JsonRow.objects.create(raw_data=raw)
+                run(JsonRow)
+                row.refresh_from_db()
+                self.assertEqual(row.raw_data, "{}")
