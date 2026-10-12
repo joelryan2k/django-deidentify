@@ -55,7 +55,30 @@ class Customer(ConfidentialFields, models.Model):
 `_anonymizer_field_map` values can be:
 - a 1-arg callable `lambda f: f.email` — called as `fn(fake)()`
 - a 2-arg callable `lambda f, previous: ...` — called as `fn(fake, previous)()`, gets the old value
-- a plain string literal
+- a plain literal (`str`, `int`, `float`, `None`)
+- a Django expression (`F`, `Value`, `Concat`, `Func`, …)
+
+Literals and expressions run inside the database as one `UPDATE` per table, so no rows are
+loaded into Python. Callables load rows into Python in chunks. As with callables, the new value
+only replaces values that are present: nulls and empty strings are left as they are.
+
+`deidentify.sql` provides ready-made expressions:
+
+| helper | result | backend |
+|---|---|---|
+| `seq_text("Note")` | `Note <pk>` | any |
+| `seq_email(prefix="user", domain="example.com")` | `user<pk>@example.com` | any |
+| `seq_digits(9)` | pk zero-padded to 9 digits | any |
+| `fake_choice(lambda f: f.first_name, n=1000)` | picks from a pool of `n` faker values, by pk | PostgreSQL |
+| `jsonb_set_keys("raw_data", first_name="", name=seq_text("Plan"))` | sets keys in a JSON text column; invalid JSON becomes `{}` | PostgreSQL |
+
+Settings:
+- `DEIDENTIFY_CHUNK_SIZE` (default 2000): rows per chunk on the Python (callable) path.
+- `DEIDENTIFY_UPDATE_BATCH_SIZE` (default `None`, meaning one statement): splits each SQL
+  `UPDATE` into pk ranges of this size, to keep transactions and WAL small. Requires
+  integer primary keys.
+
+After a large run, consider `VACUUM ANALYZE`.
 
 A subclass's `_anonymizer_field_map` **extends**, not replaces, its base
 classes' maps — an inherited redaction can't be silently dropped by a
