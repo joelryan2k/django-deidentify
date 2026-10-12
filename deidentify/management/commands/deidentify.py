@@ -10,7 +10,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not util.is_enabled():
-            raise CommandError("Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True")
+            raise CommandError(
+                "Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True"
+            )
 
         management.call_command("migrate")
         anonymize()

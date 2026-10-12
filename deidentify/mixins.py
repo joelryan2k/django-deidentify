@@ -1,9 +1,6 @@
-from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from faker import Faker
+from django.db.models.expressions import Combinable
 
 
 class AnonymizerModelPolicy(Enum):
@@ -16,9 +13,7 @@ class NotConfidential:
     _anonymizer_policy = AnonymizerModelPolicy.NO_ACTION
 
 
-MAPPING_FUNCTION = Callable[["Faker"], Callable]
-MAPPING_WITH_PREVIOUS_FUNCTION = Callable[["Faker", str], Callable]
-FIELD_MAPPING_VALUE = MAPPING_WITH_PREVIOUS_FUNCTION | MAPPING_FUNCTION | str
+FIELD_MAPPING_VALUE = Combinable | str | int | float | None
 FIELD_MAPPING = dict[str, FIELD_MAPPING_VALUE]
 
 

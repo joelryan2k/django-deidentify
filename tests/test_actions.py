@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import faker
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
@@ -9,7 +8,7 @@ from deidentify.actions import anonymize, anonymize_model, truncate_model
 from deidentify.model_actions import TruncateTable
 from deidentify.policy import build_policy
 from deidentify.util import enumerate_tables, truncate_table
-from tests.testapp.models import ChildWithOwnSecret, MappedRow, Secret
+from tests.testapp.models import ChildWithOwnSecret, Secret
 
 postgres_only = unittest.skipUnless(
     os.environ.get("DEIDENTIFY_TEST_POSTGRES"),
@@ -39,21 +38,6 @@ class DispatchAndFieldMappingTests(TestCase):
 
         self.assertEqual(Secret.objects.count(), 0)
 
-    def test_field_mapping_forms(self):
-        row = MappedRow.objects.create(
-            faked="Jane", code="ABC123", country="Freedonia", account_number="OLD-ACCT"
-        )
-
-        policy = build_policy()
-        mapping = policy.model_policies[("tests.testapp", MappedRow)].field_map
-        anonymize_model(MappedRow, faker.Faker(), mapping)
-
-        row.refresh_from_db()
-        self.assertNotEqual(row.faked, "Jane")  # 1-arg faker callable
-        self.assertEqual(row.code, "anon-ABC123")  # 2-arg callable sees previous value
-        self.assertEqual(row.country, "REDACTED")  # plain string literal
-        self.assertEqual(row.account_number, "A20000")  # create_incrementing_faker
-
     def test_inherited_field_map_merges_with_subclass_map(self):
         row = ChildWithOwnSecret.objects.create(
             name="Jane Q Client", note="secret note"
@@ -61,7 +45,7 @@ class DispatchAndFieldMappingTests(TestCase):
 
         policy = build_policy()
         mapping = policy.model_policies[("tests.testapp", ChildWithOwnSecret)].field_map
-        anonymize_model(ChildWithOwnSecret, faker.Faker(), mapping)
+        anonymize_model(ChildWithOwnSecret, mapping)
 
         row.refresh_from_db()
         self.assertNotEqual(row.name, "Jane Q Client")  # inherited redaction
