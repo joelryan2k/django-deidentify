@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import Callable
 from functools import cached_property
 
@@ -49,6 +50,7 @@ class FakeChoice(Func):
     def __init__(self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int):
         super().__init__(F("pk"))
         self.fake_fn, self.n, self.seed = fake_fn, n, seed
+        self.salt = secrets.token_hex(4)
 
     @cached_property
     def pool(self) -> list[str]:
@@ -62,8 +64,8 @@ class FakeChoice(Func):
     def as_postgresql(self, compiler, connection, **extra_context):
         (pk_sql,), params = _compile_all(compiler, self.get_source_expressions())
         return (
-            f"(%s::text[])[1 + mod(abs({pk_sql}), %s)]",
-            [self.pool, *params, len(self.pool)],
+            f"(%s::text[])[1 + abs(mod(hashtext(({pk_sql})::text || %s), %s))]",
+            [self.pool, *params, self.salt, len(self.pool)],
         )
 
 

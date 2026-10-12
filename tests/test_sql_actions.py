@@ -113,3 +113,17 @@ class PostgresHelperTests(TestCase):
 
         row.refresh_from_db()
         self.assertNotIn(row.label, ("Jane", ""))
+
+    def test_fake_choice_columns_are_independent(self):
+        SqlRow.objects.bulk_create(SqlRow(label="x", note="x") for _ in range(200))
+
+        run(
+            SqlRow,
+            {
+                "label": fake_choice(lambda f: lambda: str(f.random_int(0, 9)), n=10),
+                "note": fake_choice(lambda f: lambda: str(f.random_int(0, 9)), n=10),
+            },
+        )
+
+        pairs = set(SqlRow.objects.values_list("label", "note"))
+        self.assertGreater(len(pairs), 20)
