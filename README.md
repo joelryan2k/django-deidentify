@@ -68,7 +68,9 @@ python manage.py deidentify
 ```
 
 This runs `migrate` and `anonymize()` against the current database, in
-place, guarded by `settings.DEBUG` (it refuses to run otherwise). Getting a
+place, guarded by `settings.DEBUG` (it refuses to run otherwise). To run without
+`DEBUG` (e.g. a CI/staging job on a disposable copy), set
+`DEIDENTIFY_ALLOW_WITHOUT_DEBUG = True`. Getting a
 production dump in beforehand and exporting the scrubbed result afterward is
 your project's job — wrap this command with your own restore/dump steps.
 

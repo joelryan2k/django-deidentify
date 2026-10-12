@@ -3,7 +3,7 @@ from inspect import signature
 from itertools import chain, islice
 
 import faker
-from django.conf import settings
+from deidentify import util
 
 from deidentify.mixins import FIELD_MAPPING, FIELD_MAPPING_VALUE
 from deidentify.model_actions import NoAction, ObscureFields, TruncateTable
@@ -35,8 +35,8 @@ def count_parameters(p: FIELD_MAPPING_VALUE):
 
 
 def anonymize_model(model_klass, fake: faker.Faker, mapping: FIELD_MAPPING):
-    if not settings.DEBUG:
-        raise Exception("Will not run unless DEBUG is True")
+    if not util.is_enabled():
+        raise Exception("Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True")
 
     logger.info("Anonymizing %s", model_klass)
 
@@ -73,8 +73,8 @@ def anonymize_model(model_klass, fake: faker.Faker, mapping: FIELD_MAPPING):
 
 
 def truncate_model(model_klass):
-    if not settings.DEBUG:
-        raise Exception("Will not run unless DEBUG is True")
+    if not util.is_enabled():
+        raise Exception("Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True")
 
     logger.info("Truncating %s", model_klass)
 
@@ -82,8 +82,8 @@ def truncate_model(model_klass):
 
 
 def anonymize():
-    if not settings.DEBUG:
-        raise Exception("Will not run unless DEBUG is True")
+    if not util.is_enabled():
+        raise Exception("Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True")
 
     policy = build_policy()
     fake = faker.Faker()

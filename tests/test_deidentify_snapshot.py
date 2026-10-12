@@ -11,6 +11,13 @@ class DebugGuardTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("deidentify_snapshot", input="in.dump", output="out.dump")
 
+    @override_settings(DEIDENTIFY_ALLOW_WITHOUT_DEBUG=True)
+    @mock.patch("deidentify.management.commands.deidentify_snapshot.subprocess.run")
+    @mock.patch("deidentify.management.commands.deidentify_snapshot.anonymize")
+    def test_runs_with_override_setting(self, mock_anonymize, mock_run):
+        call_command("deidentify_snapshot", input="in.dump", output="out.dump")
+        mock_anonymize.assert_called_once()
+
 
 @override_settings(DEBUG=True)
 class AnonymizeSnapshotTests(TestCase):

@@ -54,7 +54,7 @@ Four modules, each with one job, called in this order by `deidentify management 
   `create_incrementing_faker(start, format_str)` for unique-constrained columns where a random
   fake risks a collision.
 
-Everything guards `settings.DEBUG` and refuses to run otherwise — this tool is meant to run only
+Everything guards `settings.DEBUG` (overridable via `DEIDENTIFY_ALLOW_WITHOUT_DEBUG`) and refuses to run otherwise — this tool is meant to run only
 against a disposable local/dev database copy, never against production data in place.
 
 `tests/testapp/models.py` is the fixture app exercising all three mixins and all three field-map

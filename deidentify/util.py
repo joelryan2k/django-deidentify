@@ -82,3 +82,7 @@ def create_incrementing_faker(start: int = 1, format_str: str = "{}"):
         return fn
 
     return mapping_fn
+
+
+def is_enabled() -> bool:
+    return settings.DEBUG or getattr(settings, "DEIDENTIFY_ALLOW_WITHOUT_DEBUG", False)

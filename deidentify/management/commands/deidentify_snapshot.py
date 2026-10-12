@@ -1,6 +1,7 @@
 import subprocess
 
 from django.conf import settings
+from deidentify import util
 from django.core import management
 from django.core.management.base import BaseCommand, CommandError
 
@@ -21,8 +22,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if not settings.DEBUG:
-            raise CommandError("Will not run unless DEBUG is True")
+        if not util.is_enabled():
+            raise CommandError("Will not run unless DEBUG or DEIDENTIFY_ALLOW_WITHOUT_DEBUG is True")
 
         subprocess.run(
             ["devbox", "run", "restore-database", options["input"]], check=True

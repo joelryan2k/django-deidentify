@@ -56,7 +56,7 @@ for.
 ## Running it
 
 `python manage.py deidentify` runs `migrate` then `anonymize()` against the *current*
-database, in place, guarded by `settings.DEBUG` — refuses otherwise. Only run this
+database, in place, guarded by `settings.DEBUG` (or `DEIDENTIFY_ALLOW_WITHOUT_DEBUG`) — refuses otherwise. Only run this
 against a disposable local/dev database, never production. Some projects wrap this in
 their own management command (e.g. `deidentify_snapshot`) to add restore-in/dump-out
 steps around it — check for one before assuming `deidentify` is the only entry point.
