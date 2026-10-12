@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-deidentify"
-version = "0.1.0"
+version = "0.2.0"
 description = "Fail-closed database de-identification for Django: every model must declare a policy, or the run refuses."
 readme = "README.md"
 license = "MIT"

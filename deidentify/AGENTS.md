@@ -33,8 +33,14 @@ class Customer(ConfidentialFields, models.Model):
 ```
 
 `_anonymizer_field_map` values: a 1-arg callable `lambda f: ...` (`fn(fake)()`), a 2-arg
-callable `lambda f, previous: ...` (`fn(fake, previous)()`, gets the old value), or a
-plain string literal. A subclass's map **extends**, not replaces, its bases' maps.
+callable `lambda f, previous: ...` (`fn(fake, previous)()`, gets the old value), a plain
+literal, or a Django expression. A subclass's map **extends**, not replaces, its bases' maps.
+
+Prefer literals and expressions: they run as one SQL `UPDATE` per table, while callables load
+every row into Python. `deidentify.sql` has ready-made expressions: `seq_text`, `seq_email`,
+`seq_digits`, and on PostgreSQL `fake_choice(lambda f: f.first_name, locales=[...])` and
+`jsonb_set_keys("col", key=value)`. See `CHANGELOG.md` in the library repo for 0.1 → 0.2
+upgrade notes.
 
 ## Models you don't own
 
