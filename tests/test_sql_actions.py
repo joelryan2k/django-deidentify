@@ -127,3 +127,14 @@ class PostgresHelperTests(TestCase):
 
         pairs = set(SqlRow.objects.values_list("label", "note"))
         self.assertGreater(len(pairs), 20)
+
+
+class FakeChoicePoolTests(unittest.TestCase):
+    def test_pool_is_unique_and_stops_when_exhausted(self):
+        pool = fake_choice(lambda f: lambda: str(f.random_int(0, 9)), n=50).pool
+        self.assertEqual(sorted(pool), [str(i) for i in range(10)])
+
+    def test_locales_widen_the_pool(self):
+        us = fake_choice(lambda f: f.last_name).pool
+        many = fake_choice(lambda f: f.last_name, locales=["en_US", "en_GB", "en_AU"]).pool
+        self.assertGreater(len(many), len(us))

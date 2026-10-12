@@ -69,7 +69,7 @@ only replaces values that are present: nulls and empty strings are left as they 
 | `seq_text("Note")` | `Note <pk>` | any |
 | `seq_email(prefix="user", domain="example.com")` | `user<pk>@example.com` | any |
 | `seq_digits(9)` | pk zero-padded to 9 digits | any |
-| `fake_choice(lambda f: f.first_name, n=1000)` | picks from a pool of `n` faker values, by pk | PostgreSQL |
+| `fake_choice(lambda f: f.first_name, n=5000, locales=None)` | picks from a pool of up to `n` unique faker values, chosen per row by a salted hash of the pk (so two `fake_choice` columns vary independently) | PostgreSQL |
 | `jsonb_set_keys("raw_data", first_name="", name=seq_text("Plan"))` | sets keys in a JSON text column; invalid JSON becomes `{}` | PostgreSQL |
 
 Settings:

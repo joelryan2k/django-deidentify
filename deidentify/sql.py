@@ -7,7 +7,9 @@ from django.db import NotSupportedError
 from django.db.models import CharField, F, Func, TextField, Value
 from django.db.models.functions import Cast, Concat, LPad
 
-TRY_JSONB_SQL = """
+MAX_CONSECUTIVE_MISSES = 1000
+
+TRY_JSONB_SQL ="""
 CREATE OR REPLACE FUNCTION pg_temp.try_jsonb(t text) RETURNS jsonb AS $$
 BEGIN RETURN t::jsonb; EXCEPTION WHEN others THEN RETURN NULL; END $$ LANGUAGE plpgsql
 """
@@ -47,16 +49,21 @@ def _compile_all(compiler, expressions):
 class FakeChoice(Func):
     output_field = TextField()
 
-    def __init__(self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int):
+    def __init__(self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int, locales):
         super().__init__(F("pk"))
-        self.fake_fn, self.n, self.seed = fake_fn, n, seed
+        self.fake_fn, self.n, self.seed, self.locales = fake_fn, n, seed, locales
         self.salt = secrets.token_hex(4)
 
     @cached_property
     def pool(self) -> list[str]:
-        fake = faker.Faker()
+        fake = faker.Faker(self.locales)
         fake.seed_instance(self.seed)
-        return [str(self.fake_fn(fake)()) for _ in range(self.n)]
+        pool, misses = {}, 0
+        while len(pool) < self.n and misses < MAX_CONSECUTIVE_MISSES:
+            value = str(self.fake_fn(fake)())
+            misses = misses + 1 if value in pool else 0
+            pool[value] = None
+        return list(pool)
 
     def as_sql(self, compiler, connection, **extra_context):
         raise NotSupportedError("fake_choice requires PostgreSQL")
@@ -69,8 +76,13 @@ class FakeChoice(Func):
         )
 
 
-def fake_choice(fake_fn: Callable[[faker.Faker], Callable], n: int = 1000, seed: int = 0):
-    return FakeChoice(fake_fn, n, seed)
+def fake_choice(
+    fake_fn: Callable[[faker.Faker], Callable],
+    n: int = 5000,
+    seed: int = 0,
+    locales: str | list[str] | None = None,
+):
+    return FakeChoice(fake_fn, n, seed, locales)
 
 
 class JsonbSetKeys(Func):
