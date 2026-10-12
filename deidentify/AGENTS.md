@@ -13,7 +13,11 @@ instead of leaking into a scrubbed dump.
 Every model picks exactly one mixin from `deidentify.mixins`:
 
 ```python
+from django.db.models import Value
+from django.db.models.functions import Concat
+
 from deidentify.mixins import ConfidentialFields, ConfidentialTable, NotConfidential
+from deidentify.sql import seq_digits, seq_email
 
 
 class Order(NotConfidential, models.Model): ...  # no PII, left untouched
@@ -27,20 +31,19 @@ class Customer(ConfidentialFields, models.Model):
     account_number = models.CharField(max_length=20, unique=True)
 
     _anonymizer_field_map = {
-        "email": lambda f: f.email,  # 1-arg: fn(fake)()
-        "account_number": create_incrementing_faker(20000, "A{:05d}"),  # unique columns
+        "email": seq_email(),
+        "account_number": Concat(Value("A"), seq_digits(8)),  # unique: built from the pk
     }
 ```
 
-`_anonymizer_field_map` values: a 1-arg callable `lambda f: ...` (`fn(fake)()`), a 2-arg
-callable `lambda f, previous: ...` (`fn(fake, previous)()`, gets the old value), a plain
-literal, or a Django expression. A subclass's map **extends**, not replaces, its bases' maps.
+`_anonymizer_field_map` values are plain literals or Django expressions; each table is
+anonymized with one SQL `UPDATE`. Callables are not supported and fail the run up front with
+`TypeError`. A subclass's map **extends**, not replaces, its bases' maps.
 
-Prefer literals and expressions: they run as one SQL `UPDATE` per table, while callables load
-every row into Python. `deidentify.sql` has ready-made expressions: `seq_text`, `seq_email`,
-`seq_digits`, and on PostgreSQL `fake_choice(lambda f: f.first_name, locales=[...])` and
-`jsonb_set_keys("col", key=value)`. See `CHANGELOG.md` in the library repo for 0.1 → 0.2
-upgrade notes.
+`deidentify.sql` has ready-made expressions: `seq_text`, `seq_email`, `seq_digits`, and on
+PostgreSQL `fake_choice(lambda f: f.first_name, locales=[...])` (a faker pool built once per
+run, not per row), `fake_date(start, end)` and `jsonb_set_keys("col", key=value)`. See
+`CHANGELOG.md` in the library repo for 0.1 → 0.2 upgrade notes.
 
 ## Models you don't own
 

@@ -1,8 +1,8 @@
 import json
 import os
 import unittest
+from datetime import date
 
-import faker
 from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -10,7 +10,7 @@ from django.test.utils import CaptureQueriesContext
 from deidentify.actions import anonymize_model
 from deidentify.policy import build_policy
 from deidentify.sql import fake_choice
-from tests.testapp.models import ConcreteChild, JsonRow, SqlRow
+from tests.testapp.models import ConcreteChild, DateRow, JsonRow, SqlRow
 
 postgres_only = unittest.skipUnless(
     os.environ.get("DEIDENTIFY_TEST_POSTGRES"),
@@ -21,13 +21,15 @@ postgres_only = unittest.skipUnless(
 def run(model, mapping=None):
     if mapping is None:
         mapping = build_policy().model_policies[("tests.testapp", model)].field_map
-    anonymize_model(model, faker.Faker(), mapping)
+    anonymize_model(model, mapping)
 
 
 @override_settings(DEBUG=True)
 class SqlPathTests(TestCase):
     def test_literals_and_expressions_are_applied(self):
-        row = SqlRow.objects.create(label="Jane", email="jane@real.com", digits="123456789", note="secret")
+        row = SqlRow.objects.create(
+            label="Jane", email="jane@real.com", digits="123456789", note="secret"
+        )
 
         run(SqlRow)
 
@@ -50,7 +52,9 @@ class SqlPathTests(TestCase):
         mapping = {"label": "REDACTED", "email": SqlRow._anonymizer_field_map["email"]}
 
         def query_count(rows):
-            SqlRow.objects.bulk_create(SqlRow(label="x", email="x") for _ in range(rows))
+            SqlRow.objects.bulk_create(
+                SqlRow(label="x", email="x") for _ in range(rows)
+            )
             with CaptureQueriesContext(connection) as ctx:
                 run(SqlRow, mapping)
             return len(ctx.captured_queries)
@@ -75,27 +79,29 @@ class SqlPathTests(TestCase):
 
         self.assertEqual(SqlRow.objects.filter(label="REDACTED").count(), 5)
 
-    @override_settings(DEIDENTIFY_CHUNK_SIZE=2)
-    def test_python_path_respects_chunk_size(self):
-        SqlRow.objects.bulk_create(SqlRow(note="secret") for _ in range(5))
-
-        run(SqlRow, {"note": lambda f: lambda: "fake"})
-
-        self.assertEqual(SqlRow.objects.filter(note="fake").count(), 5)
+    def test_callable_values_are_rejected(self):
+        with self.assertRaisesMessage(TypeError, "SqlRow.note"):
+            run(SqlRow, {"note": lambda f: f.sentence})
 
 
 @postgres_only
 @override_settings(DEBUG=True)
 class PostgresHelperTests(TestCase):
     def test_jsonb_set_keys(self):
-        row = JsonRow.objects.create(raw_data=json.dumps({"first_name": "Jane", "age": 50}))
+        row = JsonRow.objects.create(
+            raw_data=json.dumps({"first_name": "Jane", "age": 50})
+        )
 
         run(JsonRow)
 
         row.refresh_from_db()
         self.assertEqual(
             json.loads(row.raw_data),
-            {"first_name": "", "age": 50, "illustration_name": f"Illustration {row.pk}"},
+            {
+                "first_name": "",
+                "age": 50,
+                "illustration_name": f"Illustration {row.pk}",
+            },
         )
 
     def test_jsonb_set_keys_replaces_invalid_json(self):
@@ -136,7 +142,9 @@ class FakeChoicePoolTests(unittest.TestCase):
 
     def test_locales_widen_the_pool(self):
         us = fake_choice(lambda f: f.last_name).pool
-        many = fake_choice(lambda f: f.last_name, locales=["en_US", "en_GB", "en_AU"]).pool
+        many = fake_choice(
+            lambda f: f.last_name, locales=["en_US", "en_GB", "en_AU"]
+        ).pool
         self.assertGreater(len(many), len(us))
 
 
@@ -150,3 +158,18 @@ class JsonbNonObjectTests(TestCase):
                 run(JsonRow)
                 row.refresh_from_db()
                 self.assertEqual(row.raw_data, "{}")
+
+
+@postgres_only
+@override_settings(DEBUG=True)
+class FakeDateTests(TestCase):
+    def test_dates_fall_in_range_and_vary(self):
+        DateRow.objects.bulk_create(DateRow(born=date(2020, 1, 1)) for _ in range(50))
+        DateRow.objects.create(born=None)
+
+        run(DateRow)
+
+        born = list(DateRow.objects.exclude(born=None).values_list("born", flat=True))
+        self.assertTrue(all(date(1950, 1, 1) <= d <= date(1999, 12, 31) for d in born))
+        self.assertGreater(len(set(born)), 40)
+        self.assertTrue(DateRow.objects.filter(born=None).exists())

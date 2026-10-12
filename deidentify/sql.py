@@ -1,15 +1,16 @@
 import secrets
 from collections.abc import Callable
+from datetime import date
 from functools import cached_property
 
 import faker
 from django.db import NotSupportedError
-from django.db.models import CharField, F, Func, TextField, Value
+from django.db.models import CharField, DateField, F, Func, TextField, Value
 from django.db.models.functions import Cast, Concat, LPad
 
 MAX_CONSECUTIVE_MISSES = 1000
 
-TRY_JSONB_SQL ="""
+TRY_JSONB_SQL = """
 CREATE OR REPLACE FUNCTION pg_temp.try_jsonb_object(t text) RETURNS jsonb AS $$
 DECLARE v jsonb;
 BEGIN
@@ -35,7 +36,9 @@ def seq_text(prefix: str):
 
 
 def seq_email(prefix: str = "user", domain: str = "example.com"):
-    return Concat(Value(prefix), _pk_text(), Value(f"@{domain}"), output_field=CharField())
+    return Concat(
+        Value(prefix), _pk_text(), Value(f"@{domain}"), output_field=CharField()
+    )
 
 
 def seq_digits(width: int):
@@ -54,7 +57,9 @@ def _compile_all(compiler, expressions):
 class FakeChoice(Func):
     output_field = TextField()
 
-    def __init__(self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int, locales):
+    def __init__(
+        self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int, locales
+    ):
         super().__init__(F("pk"))
         self.fake_fn, self.n, self.seed, self.locales = fake_fn, n, seed, locales
         self.salt = secrets.token_hex(4)
@@ -90,6 +95,29 @@ def fake_choice(
     return FakeChoice(fake_fn, n, seed, locales)
 
 
+class FakeDate(Func):
+    output_field = DateField()
+
+    def __init__(self, start: date, end: date):
+        super().__init__(F("pk"))
+        self.start, self.days = start, (end - start).days + 1
+        self.salt = secrets.token_hex(4)
+
+    def as_sql(self, compiler, connection, **extra_context):
+        raise NotSupportedError("fake_date requires PostgreSQL")
+
+    def as_postgresql(self, compiler, connection, **extra_context):
+        (pk_sql,), params = _compile_all(compiler, self.get_source_expressions())
+        return (
+            f"(%s::date + abs(mod(hashtext(({pk_sql})::text || %s), %s)))",
+            [self.start, *params, self.salt, self.days],
+        )
+
+
+def fake_date(start: date, end: date):
+    return FakeDate(start, end)
+
+
 class JsonbSetKeys(Func):
     output_field = TextField()
 
@@ -97,7 +125,9 @@ class JsonbSetKeys(Func):
         expressions = [F(column)]
         for key, value in values.items():
             expressions.append(Value(key))
-            expressions.append(value if hasattr(value, "resolve_expression") else Value(value))
+            expressions.append(
+                value if hasattr(value, "resolve_expression") else Value(value)
+            )
         super().__init__(*expressions)
 
     def as_sql(self, compiler, connection, **extra_context):
