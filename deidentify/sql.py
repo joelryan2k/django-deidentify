@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from functools import cached_property
 
 import faker
 from django.db import NotSupportedError
@@ -45,9 +46,15 @@ def _compile_all(compiler, expressions):
 class FakeChoice(Func):
     output_field = TextField()
 
-    def __init__(self, pool: list[str]):
+    def __init__(self, fake_fn: Callable[[faker.Faker], Callable], n: int, seed: int):
         super().__init__(F("pk"))
-        self.pool = pool
+        self.fake_fn, self.n, self.seed = fake_fn, n, seed
+
+    @cached_property
+    def pool(self) -> list[str]:
+        fake = faker.Faker()
+        fake.seed_instance(self.seed)
+        return [str(self.fake_fn(fake)()) for _ in range(self.n)]
 
     def as_sql(self, compiler, connection, **extra_context):
         raise NotSupportedError("fake_choice requires PostgreSQL")
@@ -61,9 +68,7 @@ class FakeChoice(Func):
 
 
 def fake_choice(fake_fn: Callable[[faker.Faker], Callable], n: int = 1000, seed: int = 0):
-    fake = faker.Faker()
-    fake.seed_instance(seed)
-    return FakeChoice([str(fake_fn(fake)()) for _ in range(n)])
+    return FakeChoice(fake_fn, n, seed)
 
 
 class JsonbSetKeys(Func):
